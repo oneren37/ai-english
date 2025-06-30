@@ -1,0 +1,36 @@
+name: Deploy to Yandex Cloud
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Yandex Container Registry
+        env:
+          YC_OAUTH_TOKEN: ${{ secrets.YC_OAUTH_TOKEN }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          pip install yandexcloud
+          yc config set token $YC_OAUTH_TOKEN
+          yc config set cloud-id $YC_CLOUD_ID
+          yc config set folder-id $YC_FOLDER_ID
+          yc container registry configure-docker
+
+      - name: Build Docker image
+        run: |
+          docker build -t cr.yandex/${{ secrets.YC_REGISTRY_ID }}/ai-english:latest .
+
+      - name: Push Docker image
+        run: |
+          docker push cr.yandex/${{ secrets.YC_REGISTRY_ID }}/ai-english:latest 
